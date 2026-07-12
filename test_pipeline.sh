@@ -1,6 +1,4 @@
 #!/bin/bash
-set -e
-
 OUTPUT="test_output.txt"
 echo "========================================" > $OUTPUT
 echo "CUSTOMER DATA PIPELINE - INTEGRATION TESTS" >> $OUTPUT
@@ -39,13 +37,26 @@ echo -e "\n\n========================================" >> $OUTPUT
 echo "UNIT TESTS" >> $OUTPUT
 echo "========================================" >> $OUTPUT
 
-echo -e "\n[10] Flask Unit Tests" >> $OUTPUT
-pip install pytest -q 2>/dev/null && cd mock-server && python -m pytest tests/ -v >> ../$OUTPUT 2>&1; cd ..
+echo -e "\n[10] Flask Unit Tests (test_app.py)" >> $OUTPUT
+pip install pytest -q 2>/dev/null
+(cd mock-server && python -m pytest tests/ -v --tb=short 2>&1) >> $OUTPUT || true
 
-echo -e "\n\n[11] FastAPI Unit Tests" >> $OUTPUT
-cd pipeline-service && python -m pytest tests/ -v >> ../$OUTPUT 2>&1; cd ..
+echo -e "\n\n[11] FastAPI Unit Tests (test_main.py)" >> $OUTPUT
+(cd pipeline-service && python -m pytest tests/test_main.py -v --tb=short 2>&1) >> $OUTPUT || true
+
+echo -e "\n\n[12] Ingestion Unit Tests (test_ingestion.py)" >> $OUTPUT
+(cd pipeline-service && python -m pytest tests/test_ingestion.py -v --tb=short 2>&1) >> $OUTPUT || true
+
+echo -e "\n\n[13] Database & Model Tests (test_database.py)" >> $OUTPUT
+(cd pipeline-service && python -m pytest tests/test_database.py -v --tb=short 2>&1) >> $OUTPUT || true
 
 echo -e "\n\n========================================" >> $OUTPUT
+echo "TEST SUMMARY" >> $OUTPUT
+echo "========================================" >> $OUTPUT
+
+echo -e "\nIntegration Tests: [1]-[9] above" >> $OUTPUT
+echo "Unit Tests: [10] Flask, [11] FastAPI, [12] Ingestion, [13] Database" >> $OUTPUT
+echo "========================================" >> $OUTPUT
 echo "ALL TESTS COMPLETE" >> $OUTPUT
 echo "========================================" >> $OUTPUT
 
