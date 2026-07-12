@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock, call
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 
@@ -100,7 +100,7 @@ class TestParseCustomer:
         result = parse_customer({
             "customer_id": "C001", "first_name": "A", "last_name": "B", "email": "a@b.com",
             "date_of_birth": "1990-05-14", "created_at": "2024-01-15T10:30:00Z"})
-        assert result[8] == datetime(2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc)
+        assert result[8] == datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
 
     def test_handles_none_dates(self):
         from services.ingestion import parse_customer

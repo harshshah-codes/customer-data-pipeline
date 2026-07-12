@@ -69,7 +69,7 @@ def make_mock_db(data=None):
         if "count(*)" in sql or "count(1)" in sql:
             return MockMapping([{"count": len(rows)}])
 
-        if "where" in sql and "customer_id" in params:
+        if "where" in sql:
             matched = [r for r in rows if r.get("customer_id") == params.get("id", params.get("customer_id"))]
             return MockMapping(matched)
 
