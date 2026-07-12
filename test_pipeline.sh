@@ -45,7 +45,7 @@ echo "--- END ---" >> $OUTPUT
 
 echo -e "\n\n[11] FastAPI Unit Tests (test_main.py)" >> $OUTPUT
 echo "--- START ---" >> $OUTPUT
-docker compose exec -T pipeline-service pip install pytest -q >> $OUTPUT 2>&1
+docker compose exec -T pipeline-service pip install httpx -q >> $OUTPUT 2>&1
 docker compose exec -T pipeline-service python -m pytest tests/test_main.py -v --tb=short >> $OUTPUT 2>&1 || echo "(exit: $?)" >> $OUTPUT
 echo "--- END ---" >> $OUTPUT
 
