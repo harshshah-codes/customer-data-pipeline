@@ -3,6 +3,8 @@ from datetime import date, datetime
 import requests
 import dlt
 from dlt.destinations import postgres
+from sqlalchemy import text
+from database import engine
 
 FLASK_BASE_URL = os.getenv("FLASK_BASE_URL", "http://mock-server:5000")
 
@@ -42,6 +44,12 @@ def run_ingestion() -> int:
     customers = fetch_all_customers()
     if not customers:
         return 0
+
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS _dlt_pipeline_state CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS _dlt_loads CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS _dlt_version CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS customers CASCADE"))
 
     parsed = [parse_customer(c) for c in customers]
 
