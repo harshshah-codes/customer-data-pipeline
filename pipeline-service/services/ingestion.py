@@ -1,12 +1,38 @@
 import os
 from datetime import date, datetime
+import psycopg2
 import requests
-import dlt
-from dlt.destinations import postgres
-from sqlalchemy import text
-from database import engine
 
 FLASK_BASE_URL = os.getenv("FLASK_BASE_URL", "http://mock-server:5000")
+
+CREATE_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id VARCHAR(50) PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    address TEXT,
+    date_of_birth DATE,
+    account_balance DECIMAL(15,2),
+    created_at TIMESTAMP
+)
+"""
+
+UPSERT_SQL = """
+INSERT INTO customers (customer_id, first_name, last_name, email, phone, address, date_of_birth, account_balance, created_at)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (customer_id)
+DO UPDATE SET
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    email = EXCLUDED.email,
+    phone = EXCLUDED.phone,
+    address = EXCLUDED.address,
+    date_of_birth = EXCLUDED.date_of_birth,
+    account_balance = EXCLUDED.account_balance,
+    created_at = EXCLUDED.created_at
+"""
 
 
 def fetch_all_customers():
@@ -33,11 +59,23 @@ def fetch_all_customers():
 
 
 def parse_customer(c):
-    return {
-        **c,
-        "date_of_birth": date.fromisoformat(c["date_of_birth"]) if c.get("date_of_birth") else None,
-        "created_at": datetime.fromisoformat(c["created_at"].replace("Z", "+00:00")) if c.get("created_at") else None,
-    }
+    dob = None
+    if c.get("date_of_birth"):
+        dob = date.fromisoformat(c["date_of_birth"])
+    created = None
+    if c.get("created_at"):
+        created = datetime.fromisoformat(c["created_at"].replace("Z", "+00:00"))
+    return (
+        c["customer_id"],
+        c["first_name"],
+        c["last_name"],
+        c["email"],
+        c.get("phone"),
+        c.get("address"),
+        dob,
+        c.get("account_balance"),
+        created,
+    )
 
 
 def run_ingestion() -> int:
@@ -45,25 +83,15 @@ def run_ingestion() -> int:
     if not customers:
         return 0
 
-    with engine.begin() as conn:
-        conn.execute(text("DROP TABLE IF EXISTS _dlt_pipeline_state CASCADE"))
-        conn.execute(text("DROP TABLE IF EXISTS _dlt_loads CASCADE"))
-        conn.execute(text("DROP TABLE IF EXISTS _dlt_version CASCADE"))
-        conn.execute(text("DROP TABLE IF EXISTS customers CASCADE"))
+    records = [parse_customer(c) for c in customers]
+    db_url = os.getenv("DATABASE_URL", "postgresql://postgres:password@postgres:5432/customer_db")
+    conn = psycopg2.connect(db_url)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(CREATE_TABLE_SQL)
+            cur.executemany(UPSERT_SQL, records)
+        conn.commit()
+    finally:
+        conn.close()
 
-    parsed = [parse_customer(c) for c in customers]
-
-    pipeline = dlt.pipeline(
-        pipeline_name="customer_ingestion",
-        destination=postgres(credentials=os.getenv("DATABASE_URL", "postgresql://postgres:password@postgres:5432/customer_db")),
-        dataset_name="public",
-    )
-
-    pipeline.run(
-        parsed,
-        table_name="customers",
-        write_disposition="merge",
-        primary_key="customer_id",
-    )
-
-    return len(parsed)
+    return len(records)
