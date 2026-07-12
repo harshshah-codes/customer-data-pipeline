@@ -42,11 +42,9 @@ class TestFetchAllCustomers:
 
     @patch("services.ingestion.requests.get")
     def test_fetches_multiple_pages(self, mock_get):
-        page1 = {"data": [{"customer_id": "C001", "first_name": "A"}], "total": 2, "page": 1, "limit": 1}
-        page2 = {"data": [{"customer_id": "C002", "first_name": "B"}], "total": 2, "page": 2, "limit": 1}
         mock_get.side_effect = [
-            MagicMock(status_code=200, json=lambda: page1),
-            MagicMock(status_code=200, json=lambda: page2),
+            MagicMock(status_code=200, json=lambda: {"data": [{"customer_id": "C001", "first_name": "A"}], "total": 150, "page": 1, "limit": 100}),
+            MagicMock(status_code=200, json=lambda: {"data": [{"customer_id": "C002", "first_name": "B"}], "total": 150, "page": 2, "limit": 100}),
         ]
         from services.ingestion import fetch_all_customers
         result = fetch_all_customers()
@@ -70,15 +68,15 @@ class TestFetchAllCustomers:
 
     @patch("services.ingestion.requests.get")
     def test_paginates_correctly(self, mock_get):
-        many_items = [{"customer_id": f"C{i:03d}"} for i in range(1, 51)]
+        many_items = [{"customer_id": f"C{i:03d}"} for i in range(1, 251)]
         mock_get.side_effect = [
-            MagicMock(status_code=200, json=lambda: {"data": many_items[:20], "total": 50, "page": 1, "limit": 20}),
-            MagicMock(status_code=200, json=lambda: {"data": many_items[20:40], "total": 50, "page": 2, "limit": 20}),
-            MagicMock(status_code=200, json=lambda: {"data": many_items[40:], "total": 50, "page": 3, "limit": 20}),
+            MagicMock(status_code=200, json=lambda: {"data": many_items[:100], "total": 250, "page": 1, "limit": 100}),
+            MagicMock(status_code=200, json=lambda: {"data": many_items[100:200], "total": 250, "page": 2, "limit": 100}),
+            MagicMock(status_code=200, json=lambda: {"data": many_items[200:], "total": 250, "page": 3, "limit": 100}),
         ]
         from services.ingestion import fetch_all_customers
         result = fetch_all_customers()
-        assert len(result) == 50
+        assert len(result) == 250
 
 
 class TestParseCustomer:
@@ -102,7 +100,7 @@ class TestParseCustomer:
         result = parse_customer({
             "customer_id": "C001", "first_name": "A", "last_name": "B", "email": "a@b.com",
             "date_of_birth": "1990-05-14", "created_at": "2024-01-15T10:30:00Z"})
-        assert result[8] == datetime(2024, 1, 15, 10, 30, 0)
+        assert result[8] == datetime(2024, 1, 15, 10, 30, 0, tzinfo=datetime.timezone.utc)
 
     def test_handles_none_dates(self):
         from services.ingestion import parse_customer
@@ -222,7 +220,7 @@ class TestRunIngestion:
         from services.ingestion import run_ingestion
         run_ingestion()
 
-        upsert_calls = [c[0][0] for c in mock_cur.execute.call_args_list]
+        upsert_calls = [c[0][0] for c in mock_cur.executemany.call_args_list]
         assert any("ON CONFLICT" in str(s) for s in upsert_calls)
 
     @patch("services.ingestion.fetch_all_customers")

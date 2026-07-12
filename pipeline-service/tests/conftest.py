@@ -49,6 +49,9 @@ class MockMapping:
             return MockRow(self._rows[0])
         return None
 
+    def mappings(self):
+        return self
+
     def scalar(self):
         if self._rows:
             return list(self._rows[0].values())[0]
