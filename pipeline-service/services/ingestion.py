@@ -1,6 +1,7 @@
 import os
 import requests
 import dlt
+from dlt.destinations import postgres
 
 FLASK_BASE_URL = os.getenv("FLASK_BASE_URL", "http://mock-server:5000")
 
@@ -35,8 +36,7 @@ def run_ingestion() -> int:
 
     pipeline = dlt.pipeline(
         pipeline_name="customer_ingestion",
-        destination="postgres",
-        credentials=os.getenv("DATABASE_URL", "postgresql://postgres:password@postgres:5432/customer_db"),
+        destination=postgres(credentials=os.getenv("DATABASE_URL", "postgresql://postgres:password@postgres:5432/customer_db")),
     )
 
     pipeline.run(
