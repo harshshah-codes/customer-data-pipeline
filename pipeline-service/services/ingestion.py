@@ -37,6 +37,7 @@ def run_ingestion() -> int:
     pipeline = dlt.pipeline(
         pipeline_name="customer_ingestion",
         destination=postgres(credentials=os.getenv("DATABASE_URL", "postgresql://postgres:password@postgres:5432/customer_db")),
+        dataset_name="public",
     )
 
     pipeline.run(
