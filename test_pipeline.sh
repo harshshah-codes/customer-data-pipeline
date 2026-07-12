@@ -1,7 +1,9 @@
 #!/bin/bash
+set -e
+
 OUTPUT="test_output.txt"
 echo "========================================" > $OUTPUT
-echo "CUSTOMER DATA PIPELINE - TEST RESULTS" >> $OUTPUT
+echo "CUSTOMER DATA PIPELINE - INTEGRATION TESTS" >> $OUTPUT
 echo "========================================" >> $OUTPUT
 
 echo -e "\n[1] Flask Health Check" >> $OUTPUT
@@ -32,6 +34,16 @@ python3 -m json.tool /tmp/fastapi_404.json >> $OUTPUT 2>&1
 
 echo -e "\n\n[9] FastAPI Page 2 Test" >> $OUTPUT
 curl -s "http://localhost:8000/api/customers?page=2&limit=5" | python3 -m json.tool >> $OUTPUT 2>&1
+
+echo -e "\n\n========================================" >> $OUTPUT
+echo "UNIT TESTS" >> $OUTPUT
+echo "========================================" >> $OUTPUT
+
+echo -e "\n[10] Flask Unit Tests" >> $OUTPUT
+pip install pytest -q 2>/dev/null && cd mock-server && python -m pytest tests/ -v >> ../$OUTPUT 2>&1; cd ..
+
+echo -e "\n\n[11] FastAPI Unit Tests" >> $OUTPUT
+cd pipeline-service && python -m pytest tests/ -v >> ../$OUTPUT 2>&1; cd ..
 
 echo -e "\n\n========================================" >> $OUTPUT
 echo "ALL TESTS COMPLETE" >> $OUTPUT

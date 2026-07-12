@@ -1,4 +1,5 @@
 import os
+from datetime import date, datetime
 import requests
 import dlt
 from dlt.destinations import postgres
@@ -29,10 +30,20 @@ def fetch_all_customers():
     return all_customers
 
 
+def parse_customer(c):
+    return {
+        **c,
+        "date_of_birth": date.fromisoformat(c["date_of_birth"]) if c.get("date_of_birth") else None,
+        "created_at": datetime.fromisoformat(c["created_at"].replace("Z", "+00:00")) if c.get("created_at") else None,
+    }
+
+
 def run_ingestion() -> int:
     customers = fetch_all_customers()
     if not customers:
         return 0
+
+    parsed = [parse_customer(c) for c in customers]
 
     pipeline = dlt.pipeline(
         pipeline_name="customer_ingestion",
@@ -41,10 +52,10 @@ def run_ingestion() -> int:
     )
 
     pipeline.run(
-        customers,
+        parsed,
         table_name="customers",
         write_disposition="merge",
         primary_key="customer_id",
     )
 
-    return len(customers)
+    return len(parsed)
