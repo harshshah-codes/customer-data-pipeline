@@ -4,7 +4,11 @@ A data pipeline with 3 Docker services: Flask Mock Server, FastAPI Ingestion Pip
 
 ## Architecture
 
-Flask (JSON) → FastAPI (Ingest via dlt) → PostgreSQL → API Response
+```
+Flask (JSON) → FastAPI (psycopg2 upsert) → PostgreSQL → FastAPI REST
+```
+
+The mock server generates 21 customer records. The pipeline fetches them via paginated HTTP, transforms fields (ISO dates→Python objects), and upserts into PostgreSQL using `INSERT ... ON CONFLICT DO UPDATE`. FastAPI serves the data back with pagination, sorting, and serialization.
 
 ## Services
 
@@ -18,7 +22,7 @@ Flask (JSON) → FastAPI (Ingest via dlt) → PostgreSQL → API Response
 
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Check health
 curl http://localhost:5000/api/health
@@ -58,21 +62,50 @@ curl http://localhost:8000/api/customers?page=1&limit=5
 curl http://localhost:8000/api/customers/C001
 ```
 
+## Running Tests
+
+All tests run via the test script with Docker running:
+
+```bash
+./test_pipeline.sh
+```
+
+This runs:
+- **Integration tests** (9): curl-based HTTP checks against live Flask/FastAPI endpoints
+- **Unit tests** (95): pytest inside each container
+
+| Suite | Tests | What it covers |
+|-------|-------|----------------|
+| Flask API | 31 | Health, pagination, 404, field types, edge cases |
+| FastAPI pipeline | 31 | Serialization, pagination, 404, ingestion, validation |
+| Ingestion logic | 22 | Multi-page fetch, parsing, upsert, transactions |
+| Database & models | 11 | Connection, schema, constraints, column types |
+
 ## Project Structure
 
 ```
 ├── docker-compose.yml
+├── test_pipeline.sh
 ├── README.md
 ├── mock-server/
 │   ├── app.py
 │   ├── data/customers.json
 │   ├── Dockerfile
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── tests/
+│       └── test_app.py
 └── pipeline-service/
     ├── main.py
-    ├── models/customer.py
-    ├── services/ingestion.py
     ├── database.py
     ├── Dockerfile
-    └── requirements.txt
+    ├── requirements.txt
+    ├── models/
+    │   └── customer.py
+    ├── services/
+    │   └── ingestion.py
+    └── tests/
+        ├── conftest.py
+        ├── test_main.py
+        ├── test_ingestion.py
+        └── test_database.py
 ```
