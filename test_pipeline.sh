@@ -39,24 +39,24 @@ echo "========================================" >> $OUTPUT
 
 echo -e "\n[10] Flask Unit Tests (test_app.py)" >> $OUTPUT
 echo "--- START ---" >> $OUTPUT
-docker exec mock-server pip install pytest -q >> $OUTPUT 2>&1
-docker exec -w /app mock-server python -m pytest tests/ -v --tb=short >> $OUTPUT 2>&1 || echo "(exit: $?)" >> $OUTPUT
+docker compose exec -T mock-server pip install pytest -q >> $OUTPUT 2>&1
+docker compose exec -T mock-server python -m pytest tests/ -v --tb=short >> $OUTPUT 2>&1 || echo "(exit: $?)" >> $OUTPUT
 echo "--- END ---" >> $OUTPUT
 
 echo -e "\n\n[11] FastAPI Unit Tests (test_main.py)" >> $OUTPUT
 echo "--- START ---" >> $OUTPUT
-docker exec pipeline-service pip install pytest -q >> $OUTPUT 2>&1
-docker exec -w /app pipeline-service python -m pytest tests/test_main.py -v --tb=short >> $OUTPUT 2>&1 || echo "(exit: $?)" >> $OUTPUT
+docker compose exec -T pipeline-service pip install pytest -q >> $OUTPUT 2>&1
+docker compose exec -T pipeline-service python -m pytest tests/test_main.py -v --tb=short >> $OUTPUT 2>&1 || echo "(exit: $?)" >> $OUTPUT
 echo "--- END ---" >> $OUTPUT
 
 echo -e "\n\n[12] Ingestion Unit Tests (test_ingestion.py)" >> $OUTPUT
 echo "--- START ---" >> $OUTPUT
-docker exec -w /app pipeline-service python -m pytest tests/test_ingestion.py -v --tb=short >> $OUTPUT 2>&1 || echo "(exit: $?)" >> $OUTPUT
+docker compose exec -T pipeline-service python -m pytest tests/test_ingestion.py -v --tb=short >> $OUTPUT 2>&1 || echo "(exit: $?)" >> $OUTPUT
 echo "--- END ---" >> $OUTPUT
 
 echo -e "\n\n[13] Database & Model Tests (test_database.py)" >> $OUTPUT
 echo "--- START ---" >> $OUTPUT
-docker exec -w /app pipeline-service python -m pytest tests/test_database.py -v --tb=short >> $OUTPUT 2>&1 || echo "(exit: $?)" >> $OUTPUT
+docker compose exec -T pipeline-service python -m pytest tests/test_database.py -v --tb=short >> $OUTPUT 2>&1 || echo "(exit: $?)" >> $OUTPUT
 echo "--- END ---" >> $OUTPUT
 
 echo -e "\n\n========================================" >> $OUTPUT
