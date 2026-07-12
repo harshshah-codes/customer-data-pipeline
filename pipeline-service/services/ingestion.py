@@ -5,19 +5,7 @@ import requests
 
 FLASK_BASE_URL = os.getenv("FLASK_BASE_URL", "http://mock-server:5000")
 
-CREATE_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS customers (
-    customer_id VARCHAR(50) PRIMARY KEY,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
-    address TEXT,
-    date_of_birth DATE,
-    account_balance DECIMAL(15,2),
-    created_at TIMESTAMP
-)
-"""
+CREATE_TABLE_SQL = "CREATE TABLE customers (customer_id VARCHAR(50) PRIMARY KEY, first_name VARCHAR(100) NOT NULL, last_name VARCHAR(100) NOT NULL, email VARCHAR(255) NOT NULL, phone VARCHAR(20), address TEXT, date_of_birth DATE, account_balance DECIMAL(15,2), created_at TIMESTAMP)"
 
 UPSERT_SQL = """
 INSERT INTO customers (customer_id, first_name, last_name, email, phone, address, date_of_birth, account_balance, created_at)
@@ -88,6 +76,7 @@ def run_ingestion() -> int:
     conn = psycopg2.connect(db_url)
     try:
         with conn.cursor() as cur:
+            cur.execute("DROP TABLE IF EXISTS customers")
             cur.execute(CREATE_TABLE_SQL)
             cur.executemany(UPSERT_SQL, records)
         conn.commit()

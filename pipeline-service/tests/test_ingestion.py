@@ -193,6 +193,24 @@ class TestRunIngestion:
 
     @patch("services.ingestion.fetch_all_customers")
     @patch("services.ingestion.psycopg2.connect")
+    def test_drops_table_before_creating(self, mock_connect, mock_fetch):
+        mock_fetch.return_value = [
+            {"customer_id": "C001", "first_name": "A", "last_name": "B", "email": "a@b.com",
+             "date_of_birth": "1990-05-14", "created_at": "2024-01-15T10:30:00Z"}
+        ]
+        mock_cur = MagicMock()
+        mock_connect.return_value.cursor.return_value.__enter__.return_value = mock_cur
+
+        from services.ingestion import run_ingestion
+        run_ingestion()
+
+        drop_calls = [c[0][0] for c in mock_cur.execute.call_args_list]
+        assert any("DROP TABLE" in str(s) for s in drop_calls)
+        assert str(drop_calls[0]) == "DROP TABLE IF EXISTS customers"
+        assert "CREATE TABLE" in str(drop_calls[1])
+
+    @patch("services.ingestion.fetch_all_customers")
+    @patch("services.ingestion.psycopg2.connect")
     def test_uses_upsert(self, mock_connect, mock_fetch):
         mock_fetch.return_value = [
             {"customer_id": "C001", "first_name": "A", "last_name": "B", "email": "a@b.com",
